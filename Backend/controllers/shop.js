@@ -1,99 +1,107 @@
-const Product = require('../models/product');
-const Orders = require('../models/orders');
-const CartItem = require('../models/cart-item');
+const Product = require("../models/product");
+const Orders = require("../models/orders");
+const CartItem = require("../models/cart-item");
 
-const ITEMS_PER_PAGE=2
+const ITEMS_PER_PAGE = 2;
 
 exports.getProducts = (req, res, next) => {
   Product.findAll()
-    .then(products => {
-      res.status(200).send(products)
+    .then((products) => {
+      res.status(200).send(products);
     })
-    .catch(err => {
+    .catch((err) => {
       console.log(err);
     });
 };
 
 exports.getProduct = (req, res, next) => {
   const prodId = req.params.productId;
-  console.log(req.params)
+  console.log(req.params);
   Product.findByPk(prodId)
-    .then(product => {
-      res.status(200).send(product)
+    .then((product) => {
+      res.status(200).send(product);
     })
-    .catch(err => console.log(err));
+    .catch((err) => console.log(err));
 };
 
 exports.getIndex = async (req, res, next) => {
-  console.log(req.params)
+  console.log(req.params);
   var totalProducts;
   const page = +req.params.pageNo || 1;
-  let totalItems=Product.findAll().then(response=>{
-    totalProducts=response.length
-  }).catch(err=>console.log(err))
+  let totalItems = Product.findAll()
+    .then((response) => {
+      totalProducts = response.length;
+    })
+    .catch((err) => console.log(err));
 
   await totalItems;
 
-  Product.findAll({offset: (page-1)*ITEMS_PER_PAGE, limit: ITEMS_PER_PAGE})
-    .then(products => {
+  Product.findAll({
+    offset: (page - 1) * ITEMS_PER_PAGE,
+    limit: ITEMS_PER_PAGE,
+  })
+    .then((products) => {
       res.status(200).send({
         products: products,
         currentPage: page,
         hasNextPage: ITEMS_PER_PAGE * page < totalProducts,
         hasPreviousPage: page > 1,
-        nextPage:page+1,
-        previousPage:page-1,
-        lastPage:Math.ceil(totalProducts/ITEMS_PER_PAGE),
-        totalItems: totalProducts
+        nextPage: page + 1,
+        previousPage: page - 1,
+        lastPage: Math.ceil(totalProducts / ITEMS_PER_PAGE),
+        totalItems: totalProducts,
       });
     })
-    .catch(err => {
+    .catch((err) => {
       const error = new Error(err);
       error.httpStatusCode = 500;
       return next(error);
     });
 };
 
-
-exports.getCart =async (req, res, next) => {
+exports.getCart = async (req, res, next) => {
   var totalCartItems;
-  var totalPrice=0.00;
+  var totalPrice = 0.0;
   const page = +req.params.pageNo || 1;
-  let totalItems=req.user
+  let totalItems = req.user
     .getCart()
-    .then(cart => {
+    .then((cart) => {
       return cart
         .getProducts()
-        .then(products => {
-          totalCartItems=products.length
-          products.map(i=>totalPrice+=i.price)
-        }).catch(err => console.log(err));
-    }).catch(err => console.log(err));
-  
-  await totalItems
+        .then((products) => {
+          totalCartItems = products.length;
+          products.map((i) => (totalPrice += i.price));
+        })
+        .catch((err) => console.log(err));
+    })
+    .catch((err) => console.log(err));
+
+  await totalItems;
 
   req.user
     .getCart()
-    .then(cart => {
+    .then((cart) => {
       return cart
-        .getProducts({offset: (page-1)*ITEMS_PER_PAGE, limit: ITEMS_PER_PAGE})
-        .then(cartItems => {
+        .getProducts({
+          offset: (page - 1) * ITEMS_PER_PAGE,
+          limit: ITEMS_PER_PAGE,
+        })
+        .then((cartItems) => {
           res.status(200).send({
             cartItems: cartItems,
             currentPage: page,
             hasNextPage: ITEMS_PER_PAGE * page < totalCartItems,
             hasPreviousPage: page > 1,
-            nextPage:page+1,
-            previousPage:page-1,
-            lastPage:Math.ceil(totalCartItems/ITEMS_PER_PAGE),
+            nextPage: page + 1,
+            previousPage: page - 1,
+            lastPage: Math.ceil(totalCartItems / ITEMS_PER_PAGE),
             totalItems: totalCartItems,
-            totalPrice:totalPrice
-          })
+            totalPrice: totalPrice,
+          });
         })
-        .catch(err => console.log(err));
+        .catch((err) => console.log(err));
     })
-    .catch(err => console.log(err));
-
+    .catch((err) => console.log(err));
 };
 
 exports.addToCart = (req, res, next) => {
@@ -103,11 +111,11 @@ exports.addToCart = (req, res, next) => {
   let newQuantity = 1;
   req.user
     .getCart()
-    .then(cart => {
+    .then((cart) => {
       fetchedCart = cart;
       return cart.getProducts({ where: { id: prodId } });
     })
-    .then(products => {
+    .then((products) => {
       let product;
       if (products.length > 0) {
         product = products[0];
@@ -120,19 +128,18 @@ exports.addToCart = (req, res, next) => {
       }
       return Product.findByPk(prodId);
     })
-    .then(product => {
+    .then((product) => {
       return fetchedCart.addProduct(product, {
-        through: { quantity: newQuantity }
+        through: { quantity: newQuantity },
       });
     })
     .then((response) => {
-      console.log(response)
-      res.status(201).send(response)
+      console.log(response);
+      res.status(201).send(response);
       // res.redirect('/cart');
     })
-    .catch(err => console.log(err));
+    .catch((err) => console.log(err));
 };
-
 
 exports.postCart = (req, res, next) => {
   const prodId = req.body.productId;
@@ -140,11 +147,11 @@ exports.postCart = (req, res, next) => {
   let newQuantity = 1;
   req.user
     .getCart()
-    .then(cart => {
+    .then((cart) => {
       fetchedCart = cart;
       return cart.getProducts({ where: { id: prodId } });
     })
-    .then(products => {
+    .then((products) => {
       let product;
       if (products.length > 0) {
         product = products[0];
@@ -157,68 +164,74 @@ exports.postCart = (req, res, next) => {
       }
       return Product.findByPk(prodId);
     })
-    .then(product => {
+    .then((product) => {
       return fetchedCart.addProduct(product, {
-        through: { quantity: newQuantity }
+        through: { quantity: newQuantity },
       });
     })
     .then((response) => {
-      console.log(response)
-      res.redirect('/')
+      console.log(response);
+      res.redirect("/");
       // res.redirect('/cart');
     })
-    .catch(err => console.log(err));
+    .catch((err) => console.log(err));
 };
 
 exports.postCartDeleteProduct = (req, res, next) => {
-  console.log(req.params)
+  console.log(req.params);
   req.user
     .getCart()
-    .then(cart => {
+    .then((cart) => {
       return cart.getProducts({ where: { id: req.params.productId } });
     })
-    .then(products => {
+    .then((products) => {
       const product = products[0];
       return product.cartItem.destroy();
     })
-    .then(result => {
+    .then((result) => {
       res.status(201).send(result);
     })
-    .catch(err => console.log(err));
+    .catch((err) => console.log(err));
 };
 
 exports.getOrders = (req, res, next) => {
-  Orders.findAll().then(response=>{
-    res.status(200).send(response)
-  }).catch(err=>console.log(err)) 
+  Orders.findAll()
+    .then((response) => {
+      res.status(200).send(response);
+    })
+    .catch((err) => console.log(err));
 };
 
 exports.createOrder = (req, res, next) => {
-  console.log(req.params)
-  const items=[];
-  const totalPrice=req.params.totalPrice
+  console.log(req.params);
+  const items = [];
+  const totalPrice = req.params.totalPrice;
   req.user
     .getCart()
-    .then(cart => {
-      return cart.getProducts()})
-      .then(cartItems => {
-          cartItems.map(i=>{
-            items.push(i)
-          })
-          CartItem.destroy({
-            where: {},
-            truncate: true
-          })
-        }).catch(err => console.log(err))
-        .then(()=>{
-          Orders.create({
-            userId: 1,
-            items: JSON.stringify(items),
-            totalPrice: totalPrice,
-          }).then(result => {
-            console.log(result)
-            res.status(201).send(result)
-          }).catch(err=>console.log(err))
+    .then((cart) => {
+      return cart.getProducts();
     })
-    .catch(err => console.log(err));
+    .then((cartItems) => {
+      cartItems.map((i) => {
+        items.push(i);
+      });
+      CartItem.destroy({
+        where: {},
+        truncate: true,
+      });
+    })
+    .catch((err) => console.log(err))
+    .then(() => {
+      Orders.create({
+        userId: 1,
+        items: JSON.stringify(items),
+        totalPrice: totalPrice,
+      })
+        .then((result) => {
+          console.log(result);
+          res.status(201).send(result);
+        })
+        .catch((err) => console.log(err));
+    })
+    .catch((err) => console.log(err));
 };
